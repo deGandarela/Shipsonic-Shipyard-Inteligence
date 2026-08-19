@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; background: #f8fafc; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; background: #e5e7eb; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
         /* Painel Lateral - Corporate Design */
@@ -115,13 +115,23 @@
     </div>
 
     <script>
-        // 1. INICIAR MAPA
-        var map = L.map('map', { zoomControl: false }).setView([20, 0], 3);
+        // 1. INICIAR MAPA (COM LIMITES RÍGIDOS)
+        var map = L.map('map', { 
+            zoomControl: false,
+            minZoom: 3, // Impede zoom out exagerado
+            maxBounds: [ // Define os limites mundiais exatos
+                [-90, -180], 
+                [90, 180]
+            ],
+            maxBoundsViscosity: 1.0 // Torna as bordas "sólidas" para o rato não arrastar para o vazio
+        }).setView([20, 0], 3);
+        
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Mapa Limpo, Profissional, Estilo BI Corporativo (CartoDB Voyager)
+        // Mapa Limpo, Profissional (CartoDB Voyager)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            noWrap: true // Impede o mapa de se repetir horizontalmente infinitamente
         }).addTo(map);
 
         const portCoordinates = {
@@ -145,8 +155,7 @@
                 let today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                // A MAGIA ACONTECE AQUI: Filtrar o passado! 
-                // Apenas navios com Dry Dock igual ou superior a hoje entram no sistema.
+                // Filtrar barcos que já passaram a data
                 vesselData = data.filter(v => new Date(v['DRY DOCK ALERT']) >= today);
                 
                 updateGlobalKPIs();
@@ -237,7 +246,6 @@
                 if (f === filterType) {
                     btn.classList.replace('bg-gray-100', 'bg-[#0f172a]');
                     btn.classList.replace('text-gray-500', 'text-white');
-                    // Retirar os hover originais se estiver ativo
                     btn.classList.remove('hover:bg-red-500', 'hover:bg-blue-600');
                 } else {
                     btn.classList.replace('bg-[#0f172a]', 'bg-gray-100');
