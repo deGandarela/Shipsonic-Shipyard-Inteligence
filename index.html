@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipsonic - Predictive Pipeline</title>
+    
+    <!-- Tailwind CSS para um design rápido e moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS para o Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Ocupar o ecrã inteiro */
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
+        /* Painel Lateral flutuante (escondido por defeito) */
+        #sidebar {
+            position: absolute;
+            top: 0; right: -400px;
+            width: 400px; height: 100vh;
+            background: #111827; color: white;
+            z-index: 1000; transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            padding: 20px;
+        }
+        #sidebar.active { right: 0; }
+        
+        /* Barra de Pesquisa flutuante */
+        #search-container {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de Pesquisa -->
+    <div id="search-container">
+        <input type="text" id="searchInput" placeholder="Search Country (e.g. Portugal)" class="px-4 py-2 border rounded-md outline-none w-64 text-black focus:border-blue-500">
+        <button onclick="searchCountry()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-bold transition">Search</button>
+    </div>
+
+    <!-- O Mapa -->
+    <div id="map"></div>
+
+    <!-- O Painel Lateral (Detalhes dos Barcos) -->
+    <div id="sidebar">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="port-title" class="text-2xl font-bold text-blue-400">Porto</h2>
+            <button onclick="closeSidebar()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <p class="text-sm text-gray-400 mb-4">Select a vessel to view dry dock intelligence.</p>
+        <div id="vessel-list" class="space-y-4">
+            <!-- Os barcos vão aparecer aqui injetados por JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // 1. INICIAR O MAPA (Centrado no Mundo)
+        var map = L.map('map').setView([20, 0], 3);
+
+        // Usar mapas escuros bonitos (estilo CartoDB Dark Matter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 2. COORDENADAS DOS ESTALEIROS PORTUGUESES
+        const portCoordinates = {
+            'VIANADOCASTELO': [41.6932, -8.8328],
+            'LEIXOES': [41.1844, -8.6963],
+            'FIGUEIRADAFOZ': [40.1458, -8.8619],
+            'AVEIRO': [40.6405, -8.7210],
+            'LISBOA': [38.7223, -9.1393],
+            'OEIRAS': [38.6836, -9.3178],
+            'SETUBAL': [38.5243, -8.8926]
+        };
+
+        let vesselData = [];
+
+        // 3. CARREGAR O JSON GERADO PELO PYTHON
+        fetch('shipsonic_data.json')
+            .then(response => response.json())
+            .then(data => {
+                vesselData = data;
+                dropPins();
+            })
+            .catch(error => console.error("Erro ao carregar os dados:", error));
+
+        // 4. COLOCAR OS MARCADORES (PINS) NOS PORTOS
+        function dropPins() {
+            // Agrupar os barcos por porto
+            let groupedByPort = {};
+            vesselData.forEach(vessel => {
+                let port = vessel['Target Shipyard'];
+                if(!groupedByPort[port]) groupedByPort[port] = [];
+                groupedByPort[port].push(vessel);
+            });
+
+            // Criar um Pin para cada Porto
+            for (const [port, vessels] of Object.entries(groupedByPort)) {
+                if (portCoordinates[port]) {
+                    let marker = L.marker(portCoordinates[port]).addTo(map);
+                    
+                    // Texto ao passar o rato
+                    marker.bindTooltip(`<b>${port}</b><br>${vessels.length} Leads`, {permanent: false, direction: "top"});
+                    
+                    // Ação ao clicar no porto
+                    marker.on('click', function() {
+                        map.flyTo(portCoordinates[port], 12, { duration: 1.5 }); // Zoom In no porto
+                        openSidebar(port, vessels);
+                    });
+                }
+            }
+        }
+
+        // 5. FUNÇÃO DA BARRA DE PESQUISA
+        function searchCountry() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            if (input.includes('portugal') || input.includes('pt')) {
+                // Fazer o mapa voar para Portugal com uma animação fixe
+                map.flyTo([39.3999, -8.2245], 7, {
+                    animate: true,
+                    duration: 2.0
+                });
+            } else {
+                alert("Only Portugal shipyards are available in the current database.");
+            }
+        }
+
+        // Permitir pesquisar carregando no 'Enter'
+        document.getElementById("searchInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") searchCountry();
+        });
+
+        // 6. LÓGICA DO PAINEL LATERAL
+        function openSidebar(portName, vessels) {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('port-title').innerText = portName;
+            
+            let listHTML = '';
+            vessels.forEach(v => {
+                // Criar os cartões de cada navio
+                listHTML += `
+                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition border-l-4 border-blue-500" onclick="toggleDetails(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-lg text-white">${v['Vessel Name']}</h3>
+                            <span class="bg-blue-900 text-blue-200 text-xs px-2 py-1 rounded">Fidelity: ${v['Fidelity (PT)']}</span>
+                        </div>
+                        <p class="text-red-400 text-sm mt-1">Dry Dock: <b>${new Date(v['DRY DOCK ALERT']).toLocaleDateString()}</b></p>
+                        
+                        <!-- Detalhes Escondidos -->
+                        <div class="hidden-details hidden mt-3 pt-3 border-t border-gray-600 text-sm text-gray-300">
+                            <p><b>IMO:</b> ${v['IMO']} | <b>MMSI:</b> ${v['MMSI']}</p>
+                            <p class="mt-2"><b>Owner:</b> ${v['Owner / Company']}</p>
+                            <p><b>Email:</b> <a href="mailto:${v['Email']}" class="text-blue-400">${v['Email']}</a></p>
+                            <p><b>Phone:</b> ${v['Phone']}</p>
+                            <p class="mt-2 text-xs text-gray-400">Last Maint: ${new Date(v['Last Maintenance (PT)']).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('vessel-list').innerHTML = listHTML;
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        // Mostrar/esconder detalhes ao clicar no cartão do navio
+        function toggleDetails(element) {
+            let details = element.querySelector('.hidden-details');
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+            } else {
+                details.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
