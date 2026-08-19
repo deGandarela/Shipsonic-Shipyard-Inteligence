@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipsonic - Intelligence Dashboard</title>
+    <title>Shipsonic | Predictive Intelligence</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,116 +13,115 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: #f8fafc; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; background: #f8fafc; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
-        /* Painel Lateral */
+        /* Painel Lateral - Corporate Design */
         #sidebar {
             position: absolute;
             top: 0; right: -450px;
             width: 450px; height: 100vh;
             background: #ffffff; color: #1e293b;
             z-index: 1000; transition: right 0.3s ease;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.05);
             display: flex; flex-direction: column;
+            border-left: 1px solid #e2e8f0;
         }
         #sidebar.active { right: 0; }
         
-        /* Barra de Pesquisa Flutuante Global */
+        /* Barra de Pesquisa */
         #search-container {
             position: absolute;
-            top: 20px; left: 50%;
+            top: 24px; left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
             background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            display: flex; gap: 10px;
-            opacity: 0.4;
-            transition: opacity 0.3s ease-in-out;
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex; gap: 8px;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+            border: 1px solid #e2e8f0;
         }
         #search-container:hover, 
         #search-container:focus-within { opacity: 1; }
 
-        /* Painel Flutuante de KPI (Canto Inferior Esquerdo) */
+        /* KPI Panel - Minimalist Corporate */
         #kpi-panel {
             position: absolute;
             bottom: 30px; left: 30px;
             z-index: 1000;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            border-left: 5px solid #2563eb;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            padding: 24px;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
             width: 280px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Barra de Pesquisa Global -->
+    <!-- Barra de Pesquisa -->
     <div id="search-container">
-        <input type="text" id="searchInput" placeholder="Search Country (e.g. Portugal)" class="px-4 py-2 border border-gray-300 rounded-md outline-none w-64 text-gray-800 focus:border-blue-500 bg-white shadow-sm transition">
-        <button onclick="searchCountry()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-bold shadow-md transition">Search</button>
+        <input type="text" id="searchInput" placeholder="Search region (e.g. Portugal)" class="px-3 py-1.5 border-none outline-none w-64 text-sm text-gray-800 bg-transparent">
+        <button onclick="searchCountry()" class="bg-[#0f172a] hover:bg-[#1e293b] text-white px-4 py-1.5 rounded text-sm font-semibold transition">Search</button>
     </div>
 
-    <!-- O Mapa -->
+    <!-- Mapa -->
     <div id="map"></div>
 
-    <!-- Mini-Dashboard (KPIs Globais) -->
+    <!-- Mini-Dashboard (KPIs) -->
     <div id="kpi-panel">
-        <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-            📊 Global Overview
-        </h3>
-        <div class="space-y-2 text-sm">
-            <div class="flex justify-between border-b pb-1">
-                <span class="text-gray-500">Total Vessels on Radar:</span>
-                <span id="kpi-total" class="font-bold text-gray-800">0</span>
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-5 border-b border-gray-100 pb-2">Pipeline Overview</h3>
+        <div class="space-y-4">
+            <div>
+                <p class="text-xs text-gray-500 font-medium">Active Vessels on Radar</p>
+                <p id="kpi-total" class="text-2xl font-light text-gray-900 tracking-tight">0</p>
             </div>
-            <div class="flex justify-between border-b pb-1">
-                <span class="text-red-500 font-semibold">🔥 Urgent Leads (< 6 mo):</span>
-                <span id="kpi-urgent" class="font-bold text-red-600">0</span>
+            <div>
+                <p class="text-xs text-red-500 font-bold uppercase tracking-wider">Urgent Leads (< 6 mo)</p>
+                <p id="kpi-urgent" class="text-2xl font-semibold text-red-600 tracking-tight">0</p>
             </div>
-            <div class="flex justify-between">
-                <span class="text-gray-500">Hottest Shipyard:</span>
-                <span id="kpi-hot-port" class="font-bold text-blue-600">N/A</span>
+            <div>
+                <p class="text-xs text-gray-500 font-medium">Top Requested Shipyard</p>
+                <p id="kpi-hot-port" class="text-lg font-medium text-blue-600">N/A</p>
             </div>
         </div>
     </div>
 
-    <!-- O Painel Lateral -->
+    <!-- Painel Lateral -->
     <div id="sidebar">
-        <!-- Cabeçalho Fixo do Sidebar -->
-        <div class="p-6 border-b border-gray-100 bg-white shadow-sm z-10">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="port-title" class="text-2xl font-extrabold text-blue-800">Porto</h2>
-                <button onclick="closeSidebar()" class="text-gray-400 hover:text-gray-800 text-3xl transition">&times;</button>
+        <div class="p-6 bg-white z-10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="port-title" class="text-xl font-black text-[#0f172a] tracking-tight">Porto</h2>
+                <button onclick="closeSidebar()" class="text-gray-400 hover:text-gray-900 text-2xl transition">&times;</button>
             </div>
             
-            <!-- Barra de Pesquisa Interna & Filtros -->
-            <input type="text" id="localSearch" placeholder="Search Vessel or IMO..." onkeyup="applyFilters()" class="w-full px-3 py-2 border rounded-md text-sm mb-3 focus:outline-none focus:border-blue-500 bg-gray-50">
+            <input type="text" id="localSearch" placeholder="Search Vessel or IMO..." onkeyup="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded text-sm mb-4 focus:outline-none focus:border-blue-500 bg-gray-50">
             
             <div class="flex gap-2 text-xs font-semibold">
-                <button onclick="setFilter('ALL')" id="btn-ALL" class="flex-1 py-1 rounded bg-blue-600 text-white transition">All</button>
-                <button onclick="setFilter('URGENT')" id="btn-URGENT" class="flex-1 py-1 rounded bg-gray-200 text-gray-600 hover:bg-red-500 hover:text-white transition">Urgent</button>
-                <button onclick="setFilter('FIDELITY')" id="btn-FIDELITY" class="flex-1 py-1 rounded bg-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white transition">Fidelity 3+</button>
+                <button onclick="setFilter('ALL')" id="btn-ALL" class="flex-1 py-1.5 rounded bg-[#0f172a] text-white transition">All</button>
+                <button onclick="setFilter('URGENT')" id="btn-URGENT" class="flex-1 py-1.5 rounded bg-gray-100 text-gray-500 hover:bg-red-500 hover:text-white transition">Urgent</button>
+                <button onclick="setFilter('FIDELITY')" id="btn-FIDELITY" class="flex-1 py-1.5 rounded bg-gray-100 text-gray-500 hover:bg-blue-600 hover:text-white transition">Fidelity 3+</button>
             </div>
         </div>
 
-        <!-- Lista de Barcos (Scroll) -->
-        <div id="vessel-list" class="p-6 space-y-4 overflow-y-auto flex-1 bg-slate-50">
+        <div id="vessel-list" class="p-6 space-y-3 overflow-y-auto flex-1 bg-gray-50 border-t border-gray-100">
             <!-- Cartões Injetados via JS -->
         </div>
     </div>
 
     <script>
         // 1. INICIAR MAPA
-        var map = L.map('map').setView([20, 0], 3);
+        var map = L.map('map', { zoomControl: false }).setView([20, 0], 3);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Estilo "Google Maps" mas limpo e focado no terreno (Esri Topo Map)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri'
+        // Mapa Limpo, Profissional, Estilo BI Corporativo (CartoDB Voyager)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
         const portCoordinates = {
@@ -139,41 +138,45 @@
         let currentPortVessels = [];
         let currentFilter = 'ALL';
 
+        // Carregar JSON
         fetch('shipsonic_data.json')
             .then(response => response.json())
             .then(data => {
-                vesselData = data;
+                let today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                // A MAGIA ACONTECE AQUI: Filtrar o passado! 
+                // Apenas navios com Dry Dock igual ou superior a hoje entram no sistema.
+                vesselData = data.filter(v => new Date(v['DRY DOCK ALERT']) >= today);
+                
                 updateGlobalKPIs();
                 dropPins();
             })
             .catch(error => console.error("Erro ao carregar:", error));
 
-        // Calcular Urgência (Semáforo)
         function getUrgency(dateStr) {
             let targetDate = new Date(dateStr);
             let today = new Date();
             let diffMonths = (targetDate - today) / (1000 * 60 * 60 * 24 * 30.44);
             
-            if (diffMonths <= 6) return { status: 'URGENT', color: 'bg-red-500', text: 'text-red-700', bgCard: 'bg-red-50 border-red-200' };
-            if (diffMonths <= 12) return { status: 'ATTENTION', color: 'bg-yellow-400', text: 'text-yellow-700', bgCard: 'bg-yellow-50 border-yellow-200' };
-            return { status: 'NORMAL', color: 'bg-green-500', text: 'text-green-700', bgCard: 'bg-white border-gray-200' };
+            if (diffMonths <= 6) return { status: 'URGENT', color: 'bg-red-500', text: 'text-red-600', bgCard: 'bg-white border-red-200' };
+            if (diffMonths <= 12) return { status: 'ATTENTION', color: 'bg-amber-400', text: 'text-amber-600', bgCard: 'bg-white border-gray-200' };
+            return { status: 'NORMAL', color: 'bg-emerald-500', text: 'text-emerald-600', bgCard: 'bg-white border-gray-200' };
         }
 
-        // Atualizar Mini-Dashboard (KPIs)
         function updateGlobalKPIs() {
             let total = vesselData.length;
             let urgentCount = vesselData.filter(v => getUrgency(v['DRY DOCK ALERT']).status === 'URGENT').length;
             
             let portCounts = {};
             vesselData.forEach(v => portCounts[v['Target Shipyard']] = (portCounts[v['Target Shipyard']] || 0) + 1);
-            let hottestPort = Object.keys(portCounts).reduce((a, b) => portCounts[a] > portCounts[b] ? a : b, 'N/A');
+            let hottestPort = Object.keys(portCounts).length > 0 ? Object.keys(portCounts).reduce((a, b) => portCounts[a] > portCounts[b] ? a : b) : 'N/A';
 
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-urgent').innerText = urgentCount;
             document.getElementById('kpi-hot-port').innerText = hottestPort;
         }
 
-        // Marcadores de Mapa Customizados com Badges de Alerta!
         function dropPins() {
             let groupedByPort = {};
             vesselData.forEach(v => {
@@ -186,20 +189,19 @@
                 if (portCoordinates[port]) {
                     let urgentCount = vessels.filter(v => getUrgency(v['DRY DOCK ALERT']).status === 'URGENT').length;
                     
-                    // Design do Marcador de Alta Tecnologia
-                    let badgeHtml = urgentCount > 0 ? `<div class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md animate-pulse">${urgentCount}</div>` : '';
+                    let badgeHtml = urgentCount > 0 ? `<div class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow animate-pulse">${urgentCount}</div>` : '';
                     
                     let customIcon = L.divIcon({
                         html: `
-                            <div class="relative flex items-center justify-center w-10 h-10 bg-blue-800 text-white rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-blue-600 transition">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            <div class="relative flex items-center justify-center w-8 h-8 bg-[#0f172a] text-white rounded shadow-md cursor-pointer hover:bg-blue-600 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                                 ${badgeHtml}
                             </div>`,
-                        className: '', iconSize: [40, 40], iconAnchor: [20, 20]
+                        className: '', iconSize: [32, 32], iconAnchor: [16, 16]
                     });
 
                     let marker = L.marker(portCoordinates[port], {icon: customIcon}).addTo(map);
-                    marker.bindTooltip(`<b>${port}</b><br>${vessels.length} Total Vessels`, {direction: "top"});
+                    marker.bindTooltip(`<b>${port}</b><br>${vessels.length} Active Leads`, {direction: "top"});
                     marker.on('click', () => {
                         map.flyTo(portCoordinates[port], 12, { duration: 1.5 });
                         openSidebar(port, vessels);
@@ -208,7 +210,6 @@
             }
         }
 
-        // Pesquisa Global
         function searchCountry() {
             let input = document.getElementById('searchInput').value.toLowerCase();
             if (input.includes('portugal') || input.includes('pt')) {
@@ -219,13 +220,10 @@
         }
         document.getElementById("searchInput").addEventListener("keypress", (e) => { if (e.key === "Enter") searchCountry(); });
 
-        // Sidebar e Filtros
         function openSidebar(portName, vessels) {
             document.getElementById('sidebar').classList.add('active');
             document.getElementById('port-title').innerText = portName;
             currentPortVessels = vessels;
-            
-            // Reset filtros ao abrir
             document.getElementById('localSearch').value = '';
             setFilter('ALL'); 
         }
@@ -234,16 +232,18 @@
 
         function setFilter(filterType) {
             currentFilter = filterType;
-            
-            // Atualizar as cores dos botões de filtro
             ['ALL', 'URGENT', 'FIDELITY'].forEach(f => {
                 let btn = document.getElementById(`btn-${f}`);
                 if (f === filterType) {
-                    btn.classList.replace('bg-gray-200', 'bg-blue-600');
-                    btn.classList.replace('text-gray-600', 'text-white');
+                    btn.classList.replace('bg-gray-100', 'bg-[#0f172a]');
+                    btn.classList.replace('text-gray-500', 'text-white');
+                    // Retirar os hover originais se estiver ativo
+                    btn.classList.remove('hover:bg-red-500', 'hover:bg-blue-600');
                 } else {
-                    btn.classList.replace('bg-blue-600', 'bg-gray-200');
-                    btn.classList.replace('text-white', 'text-gray-600');
+                    btn.classList.replace('bg-[#0f172a]', 'bg-gray-100');
+                    btn.classList.replace('text-white', 'text-gray-500');
+                    if(f === 'URGENT') btn.classList.add('hover:bg-red-500');
+                    if(f === 'FIDELITY') btn.classList.add('hover:bg-blue-600');
                 }
             });
             applyFilters();
@@ -268,32 +268,31 @@
 
         function renderVesselList(vessels) {
             let listHTML = '';
-            if (vessels.length === 0) listHTML = `<p class="text-gray-500 text-center mt-5">No vessels match these filters.</p>`;
+            if (vessels.length === 0) listHTML = `<p class="text-gray-400 text-sm text-center mt-8 font-medium">No matching vessels found.</p>`;
             
             vessels.forEach(v => {
                 let u = getUrgency(v['DRY DOCK ALERT']);
                 
                 listHTML += `
-                    <div class="${u.bgCard} p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition border-l-4 border-l-blue-600" onclick="toggleDetails(this)">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-bold text-gray-900">${v['Vessel Name']}</h3>
-                            <div class="flex items-center gap-2">
-                                <span title="${u.status}" class="w-3 h-3 rounded-full ${u.color} shadow-sm border border-white"></span>
-                                <span class="bg-gray-100 text-gray-600 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border border-gray-200">Fidel: ${v['Fidelity (PT)']}</span>
+                    <div class="${u.bgCard} p-4 rounded shadow-sm cursor-pointer hover:shadow transition border-l-[3px]" onclick="toggleDetails(this)">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-gray-800 text-sm tracking-tight">${v['Vessel Name']}</h3>
+                            <div class="flex items-center gap-1.5">
+                                <span title="${u.status}" class="w-2 h-2 rounded-full ${u.color}"></span>
+                                <span class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Fidel: ${v['Fidelity (PT)']}</span>
                             </div>
                         </div>
-                        <p class="${u.text} text-sm mt-1 font-semibold flex items-center gap-1">
-                            Dry Dock: ${new Date(v['DRY DOCK ALERT']).toLocaleDateString()}
+                        <p class="${u.text} text-xs font-semibold">
+                            Next Dry Dock: ${new Date(v['DRY DOCK ALERT']).toLocaleDateString()}
                         </p>
                         
-                        <!-- Detalhes Expandidos (Sem botões rápidos de ação) -->
-                        <div class="hidden-details hidden mt-3 pt-3 border-t border-gray-200 text-sm text-gray-700 space-y-1">
-                            <p><b>IMO:</b> ${v['IMO']} | <b>MMSI:</b> ${v['MMSI']}</p>
-                            <p><b>Owner:</b> ${v['Owner / Company']}</p>
-                            <p><b>Email:</b> ${v['Email']}</p>
-                            <p><b>Phone:</b> ${v['Phone']}</p>
-                            <div class="mt-3 pt-2 text-xs text-gray-500 border-t border-dashed border-gray-300">
-                                Last Maint: ${new Date(v['Last Maintenance (PT)']).toLocaleDateString()}
+                        <div class="hidden-details hidden mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600 space-y-1.5 leading-relaxed">
+                            <p><span class="font-semibold text-gray-400">IMO</span> ${v['IMO']} <span class="mx-1 text-gray-200">|</span> <span class="font-semibold text-gray-400">MMSI</span> ${v['MMSI']}</p>
+                            <p><span class="font-semibold text-gray-400">OWNER</span> ${v['Owner / Company']}</p>
+                            <p><span class="font-semibold text-gray-400">EMAIL</span> <span class="text-blue-600">${v['Email']}</span></p>
+                            <p><span class="font-semibold text-gray-400">PHONE</span> ${v['Phone']}</p>
+                            <div class="mt-3 pt-2 border-t border-dotted border-gray-200 text-gray-400">
+                                Last Record: ${new Date(v['Last Maintenance (PT)']).toLocaleDateString()}
                             </div>
                         </div>
                     </div>
